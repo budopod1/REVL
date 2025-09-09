@@ -22,7 +22,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });*/
 
     function mapKeyEvent(e) {
-        e.preventDefault()
+        if (e.ctrlKey && e.shiftKey && e.code == "KeyR") {
+            return;
+        }
+        e.preventDefault();
         if (e.key.length == 1) {
             return e.key;
         }
@@ -57,6 +60,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    new ResizeObserver(entries => {
+        for (const entry of entries) {
+            const size = entry.contentBoxSize[0];
+            inputEvents.push({
+                viewportSize: [
+                    size.inlineSize,
+                    size.blockSize
+                ]
+            });
+        }
+    }).observe(document.getElementById("web-viewport"));
+
     const img = document.getElementById("img");
 
     const ws = new WebSocket("wss://solid-space-computing-machine-4w4wr7jxx9qhjw64-7775.app.github.dev/");
@@ -77,6 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ws.addEventListener("message", (e) => {
         const message = JSON.parse(e.data);
         img.src = "webpage.png?" + (+new Date());
+        img.style.display = "unset";
         setTimeout(sendUpdate, 100);
     });
 });

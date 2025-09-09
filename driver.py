@@ -19,67 +19,93 @@ class EventListener(AbstractEventListener):
         driver.execute_script(INJECT_JS)
 
 
-def start_firefox() -> webdriver.Firefox:
-    profile = webdriver.FirefoxProfile()
-    required_perms = ["geo"]
-    for perm in required_perms:
-        # 1 indicated 'always allow'
-        profile.set_preference(f"permissions.default.{perm}", 1)
-    options = webdriver.FirefoxOptions()
-    options.profile = profile
-    options.add_argument("--headless")
-    return EventFiringWebDriver(webdriver.Firefox(options), EventListener())
+class FFInterface:
+    def __init__(self):
+        self.ff: webdriver.Firefox = self._start_firefox()
+        self.chrome_height: int = self.calculate_chrome_height()
+        self.mouse_x = 0
+        self.mouse_y = 0
+        self.buttons = 0
 
+    def _start_firefox(self) -> webdriver.Firefox:
+        profile = webdriver.FirefoxProfile()
+        required_perms = ["geo"]
+        for perm in required_perms:
+            # 1 indicated 'always allow'
+            profile.set_preference(f"permissions.default.{perm}", 1)
+        options = webdriver.FirefoxOptions()
+        options.profile = profile
+        options.add_argument("--headless")
+        return EventFiringWebDriver(webdriver.Firefox(options), EventListener())
+    
+    # chrome in this case referring to the non-browser parts of the window, not Google Chrome
+    def calculate_chrome_height(self) -> int:
+        self.ff.get("data:text/html,")
+        requested_height = 720
+        self.ff.set_window_size(1280, requested_height)
+        effective_height = self.ff.execute_script("return window.innerHeight;")
+        return requested_height - effective_height
+    
+    def process_input(self, input):
+        builder = ActionBuilder(self.ff)
+        for frame in input:
+            new_mouse_x = frame.get("mouseX", self.mouse_x)
+            new_mouse_y = frame.get("mouseY", self.mouse_y)
+            new_buttons = frame.get("buttons", self.buttons)
 
-mouse_x = 0
-mouse_y = 0
-buttons = 0
+            if (self.mouse_x, self.mouse_y) != (new_mouse_x, new_mouse_y):
+                builder.pointer_action.move_to_location(
+                    new_mouse_x, new_mouse_y
+                )
 
+            for btn in range(5):
+                mask = 1 << btn
+                if new_buttons & mask and not self.buttons & mask:
+                    builder.pointer_action.pointer_down(btn)
+                elif self.buttons & mask and not new_buttons & mask:
+                    builder.pointer_action.pointer_up(btn)
 
-def process_input(input, ff: webdriver.Firefox):
-    global mouse_x, mouse_y, buttons
-    builder = ActionBuilder(ff)
-    for frame in input:
-        new_mouse_x = frame.get("mouseX", mouse_x)
-        new_mouse_y = frame.get("mouseY", mouse_y)
-        new_buttons = frame.get("buttons", buttons)
+            if "keydown" in frame:
+                builder.key_action.key_down(frame["keydown"])
+            if "keyup" in frame:
+                builder.key_action.key_up(frame["keyup"])
+            
+            if "viewportSize" in frame:
+                viewport_x, viewport_y = frame["viewportSize"]
+                self.ff.set_window_size(
+                    viewport_x, viewport_y + self.chrome_height
+                )
 
-        if (mouse_x, mouse_y) != (new_mouse_x, new_mouse_y):
-            builder.pointer_action.move_to_location(
-                new_mouse_x, new_mouse_y
-            )
+            self.mouse_x = new_mouse_x
+            self.mouse_y = new_mouse_y
+            self.buttons = new_buttons
+            builder.pointer_action.pause(0.02)
+            builder.key_action.pause(0.02)
+        
+        builder.perform()
+    
+    def set_url(self, url: str):
+        self.ff.get(url)
+    
+    def take_screenshot(self):
+        self.ff.save_screenshot("html/webpage.png")
+    
+    def quit(self):
+        self.ff.quit()
 
-        for btn in range(5):
-            mask = 1 << btn
-            if new_buttons & mask and not buttons & mask:
-                builder.pointer_action.pointer_down(btn)
-            elif buttons & mask and not new_buttons & mask:
-                builder.pointer_action.pointer_up(btn)
-
-        if "keydown" in frame:
-            builder.key_action.key_down(frame["keydown"])
-        if "keyup" in frame:
-            builder.key_action.key_up(frame["keyup"])
-
-        mouse_x = new_mouse_x
-        mouse_y = new_mouse_y
-        buttons = new_buttons
-        builder.pointer_action.pause(0.02)
-        builder.key_action.pause(0.02)
-    builder.perform()
 
 async def main(websocket):
     print("Got request ...")
-    ff = start_firefox()
+    interface = FFInterface()
     print("Firefox started ...")
-    ff.get(TARGET)
+    interface.set_url(TARGET)
     async for message in websocket:
         request = json.loads(message)
         print(request)
-        process_input(request["input"], ff)
-        ff.save_screenshot("html/webpage.png")
+        interface.process_input(request["input"])
+        interface.take_screenshot()
         await websocket.send(json.dumps({}))
-    ff.quit()
+    interface.quit()
 
 
 async def start_websocket_server():
