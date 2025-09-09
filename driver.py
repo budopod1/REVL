@@ -22,7 +22,7 @@ class EventListener(AbstractEventListener):
 class FFInterface:
     def __init__(self):
         self.ff: webdriver.Firefox = self._start_firefox()
-        self.chrome_height: int = self.calculate_chrome_height()
+        self.chrome_height: int = self._calculate_chrome_height()
         self.mouse_x = 0
         self.mouse_y = 0
         self.buttons = 0
@@ -31,7 +31,7 @@ class FFInterface:
         profile = webdriver.FirefoxProfile()
         required_perms = ["geo"]
         for perm in required_perms:
-            # 1 indicated 'always allow'
+            # 1 indicates 'always allow'
             profile.set_preference(f"permissions.default.{perm}", 1)
         options = webdriver.FirefoxOptions()
         options.profile = profile
@@ -39,7 +39,7 @@ class FFInterface:
         return EventFiringWebDriver(webdriver.Firefox(options), EventListener())
     
     # chrome in this case referring to the non-browser parts of the window, not Google Chrome
-    def calculate_chrome_height(self) -> int:
+    def _calculate_chrome_height(self) -> int:
         self.ff.get("data:text/html,")
         requested_height = 720
         self.ff.set_window_size(1280, requested_height)
