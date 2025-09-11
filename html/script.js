@@ -8,6 +8,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+    });
+
     addEventListener("mouseup", (e) => {
         inputEvents.push({
             mouseX: e.pageX, mouseY: e.pageY,
