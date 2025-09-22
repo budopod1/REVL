@@ -1,27 +1,33 @@
 document.addEventListener("DOMContentLoaded", () => {
+    window.REVL_INJECTED = true;
+
     let inputEvents = [];
 
-    addEventListener("mousedown", (e) => {
+    const viewportElem = document.getElementById("web-viewport");
+
+    const urlBar = document.getElementById("url-bar");
+
+    viewportElem.addEventListener("mousedown", (e) => {
         inputEvents.push({
-            mouseX: e.pageX, mouseY: e.pageY,
+            mouseX: e.offsetX, mouseY: e.offsetY,
             buttons: e.buttons
         });
     });
 
-    addEventListener("contextmenu", (e) => {
+    viewportElem.addEventListener("contextmenu", (e) => {
         e.preventDefault();
     });
 
-    addEventListener("mouseup", (e) => {
+    viewportElem.addEventListener("mouseup", (e) => {
         inputEvents.push({
-            mouseX: e.pageX, mouseY: e.pageY,
+            mouseX: e.offsetX, mouseY: e.offsetY,
             buttons: e.buttons
         });
     });
 
-    /*addEventListener("mousemove", (e) => {
+    /*viewportElem.addEventListener("mousemove", (e) => {
         inputEvents.push({
-            mouseX: e.pageX, mouseY: e.pageY
+            mouseX: e.offsetX, mouseY: e.offsetY
         });
     });*/
 
@@ -52,13 +58,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }[e.key];
     }
 
-    addEventListener("keydown", (e) => {
+    viewportElem.addEventListener("keydown", (e) => {
         inputEvents.push({
             keydown: mapKeyEvent(e)
         });
     });
 
-    addEventListener("keyup", (e) => {
+    viewportElem.addEventListener("keyup", (e) => {
         inputEvents.push({
             keyup: mapKeyEvent(e)
         });
@@ -74,7 +80,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 ]
             });
         }
-    }).observe(document.getElementById("web-viewport"));
+    }).observe(viewportElem);
+
+    document.getElementById("back-btn").addEventListener("click", () => {
+        inputEvents.push({back: true});
+    });
+
+    document.getElementById("forward-btn").addEventListener("click", () => {
+        inputEvents.push({forward: true});
+    });
+
+    document.getElementById("reload-btn").addEventListener("click", () => {
+        inputEvents.push({reload: true});
+    });
+
+    document.getElementById("url-form").addEventListener("submit", e => {
+        e.preventDefault();
+        inputEvents.push({url: urlBar.value});
+    });
 
     const img = document.getElementById("img");
 
@@ -95,6 +118,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ws.addEventListener("message", (e) => {
         const message = JSON.parse(e.data);
+        if (message.url) {
+            urlBar.value = message.url;
+        }
         img.src = "webpage.png?" + (+new Date());
         img.style.display = "unset";
         setTimeout(sendUpdate, 100);

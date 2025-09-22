@@ -9,7 +9,15 @@
 </head>
 <body>
     <div id="page-container">
-        <div id="web-viewport">
+        <header id="web-header">
+            <button id="back-btn">Back</button>
+            <button id="forward-btn">Forward</button>
+            <button id="reload-btn">Reload</button>
+            <form id="url-form">
+                <input type="url" aria-label="URL bar" id="url-bar">
+            </form>
+        </header>
+        <div id="web-viewport" tabindex="0">
             <img src="webpage.png" alt="webpage" id="img" style="display: none;">
         </div>
     </div>
