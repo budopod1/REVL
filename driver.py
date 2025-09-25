@@ -106,6 +106,7 @@ class FFInterface:
             "return [!!window.REVL_INJECTED, location.href];"
         )
         if url != self.url:
+            self.url = url
             self.push_update({"url": url})
         if not is_injected:
             self.ff.execute_script(INJECT_JS)

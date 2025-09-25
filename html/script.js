@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const viewportElem = document.getElementById("web-viewport");
 
+    const loadingNotice = document.getElementById("loading-notice");
+
     const urlBar = document.getElementById("url-bar");
 
     viewportElem.addEventListener("mousedown", (e) => {
@@ -103,7 +105,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const ws = new WebSocket("wss://solid-space-computing-machine-4w4wr7jxx9qhjw64-7775.app.github.dev/");
 
+    let loadingTimeout = null;
+
+    function hideLoading() {
+        loadingNotice.style.display = "none";
+        clearTimeout(loadingTimeout);
+    }
+
+    function showLoading() {
+        loadingNotice.style.display = "unset";
+    }
+
+    showLoading();
+    
     function sendUpdate() {
+        loadingTimeout = setTimeout(showLoading, 1000);
         ws.send(JSON.stringify({input: inputEvents}));
         inputEvents = [];
     }
@@ -113,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     ws.addEventListener("error", () => {
-        alert("something went wrong");
+        alert("Something went wrong");
     });
 
     ws.addEventListener("message", (e) => {
@@ -121,8 +137,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (message.url) {
             urlBar.value = message.url;
         }
+        hideLoading();
         img.src = "webpage.png?" + (+new Date());
         img.style.display = "unset";
         setTimeout(sendUpdate, 100);
+    });
+
+    ws.addEventListener("close", () => {
+        alert("Connection lost");
     });
 });
