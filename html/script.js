@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const img = document.getElementById("img");
 
-    const ws = new WebSocket("wss://solid-space-computing-machine-4w4wr7jxx9qhjw64-7775.app.github.dev/");
+    const ws = new WebSocket("wss://"+location.host.replace("8000", "7775"));
 
     let loadingTimeout = null;
 
